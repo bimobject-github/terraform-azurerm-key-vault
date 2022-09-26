@@ -80,12 +80,13 @@ variable "random_password_length" {
   default     = 32
 }
 
+#won't use it until module_variable_optional_attrs is in experiment mode
 variable "certificate_contacts" {
   description = "Contact information to send notifications triggered by certificate lifetime events"
   type = list(object({
     email = string
-    name  = optional(string)
-    phone = optional(string)
+    name  = string
+    phone = string
   }))
   default = []
 }
