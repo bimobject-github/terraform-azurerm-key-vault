@@ -90,8 +90,8 @@ locals {
     tenant_id               = data.azurerm_client_config.current.tenant_id
     key_permissions         = ["Create", "Delete", "Get", "Backup", "Decrypt", "Encrypt", "Import", "List", "Purge", "Recover", "Restore", "Sign", "Update", "Verify"]
     secret_permissions      = ["Backup", "Delete", "Get", "List", "Purge", "Recover", "Restore", "Set"]
-    certificate_permissions = ["Backup", "Create", "Delete", "Deleteissuers", "Get", "Getissuers", "Import", "List", "Listissuers", "Managecontacts", "Manageissuers", "Purge", "Recover", "Restore", "Setissuers", "Update"]
-    storage_permissions     = ["Backup", "Delete", "Deletesas", "Get", "Getsas", "List", "Listsas", "Purge", "Recover", "Regeneratekey", "Restore", "Set", "Setsas", "Update"]
+    certificate_permissions = ["Backup", "Create", "Delete", "DeleteIssuers", "Get", "GetIssuers", "Import", "List", "ListIssuers", "ManageContacts", "ManageIssuers", "Purge", "Recover", "Restore", "SetIssuers", "Update"]
+    storage_permissions     = ["Backup", "Delete", "DeleteSas", "Get", "GetSas", "List", "ListSas", "Purge", "Recover", "RegenerateKey", "Restore", "Set", "SetSas", "Update"]
   }
 }
 
