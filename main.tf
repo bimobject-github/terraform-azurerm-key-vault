@@ -88,10 +88,10 @@ locals {
   self_permissions = {
     object_id               = local.service_principal_object_id
     tenant_id               = data.azurerm_client_config.current.tenant_id
-    key_permissions         = ["create", "delete", "get", "backup", "decrypt", "encrypt", "import", "list", "purge", "recover", "restore", "sign", "update", "verify"]
-    secret_permissions      = ["backup", "delete", "get", "list", "purge", "recover", "restore", "set"]
-    certificate_permissions = ["backup", "create", "delete", "deleteissuers", "get", "getissuers", "import", "list", "listissuers", "managecontacts", "manageissuers", "purge", "recover", "restore", "setissuers", "update"]
-    storage_permissions     = ["backup", "delete", "deletesas", "get", "getsas", "list", "listsas", "purge", "recover", "regeneratekey", "restore", "set", "setsas", "update"]
+    key_permissions         = ["Create", "Delete", "Get", "Backup", "Decrypt", "Encrypt", "Import", "List", "Purge", "Recover", "Restore", "Sign", "Update", "Verify"]
+    secret_permissions      = ["Backup", "Delete", "Get", "List", "Purge", "Recover", "Restore", "Set"]
+    certificate_permissions = ["Backup", "Create", "Delete", "Deleteissuers", "Get", "Getissuers", "Import", "List", "Listissuers", "Managecontacts", "Manageissuers", "Purge", "Recover", "Restore", "Setissuers", "Update"]
+    storage_permissions     = ["Backup", "Delete", "Deletesas", "Get", "Getsas", "List", "Listsas", "Purge", "Recover", "Regeneratekey", "Restore", "Set", "Setsas", "Update"]
   }
 }
 
