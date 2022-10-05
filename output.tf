@@ -45,3 +45,8 @@ output "key_vault_private_endpoint_fqdn" {
   description = "Key Vault private endpoint FQDN Addresses"
   value       = var.enable_private_endpoint ? flatten(azurerm_private_endpoint.pep1.0.custom_dns_configs.*.fqdn) : null
 }
+
+output "resource_group_name"{
+  description = "Key vault resource group"
+  value = var.resource_group_name
+}
