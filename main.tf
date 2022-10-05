@@ -142,7 +142,7 @@ resource "azurerm_key_vault" "main" {
   soft_delete_retention_days      = var.soft_delete_retention_days
   enable_rbac_authorization       = var.enable_rbac_authorization
   purge_protection_enabled        = var.enable_purge_protection
-  tags                            = merge({ "ResourceName" = lower("kv-${var.key_vault_name}") }, var.tags, )
+  tags                            = merge({ "ResourceName" = lower(var.key_vault_name) }, var.tags, )
 
   dynamic "network_acls" {
     for_each = var.network_acls != null ? [true] : []
