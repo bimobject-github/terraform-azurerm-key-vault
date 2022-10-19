@@ -122,7 +122,7 @@ resource "azurerm_resource_group" "rg" {
   count    = var.create_resource_group ? 1 : 0
   name     = lower(var.resource_group_name)
   location = var.location
-  tags     = merge({ "ResourceName" = format("%s", var.resource_group_name) }, var.tags, )
+  tags     =  var.tags
 }
 
 data "azurerm_client_config" "current" {}
@@ -142,7 +142,7 @@ resource "azurerm_key_vault" "main" {
   soft_delete_retention_days      = var.soft_delete_retention_days
   enable_rbac_authorization       = var.enable_rbac_authorization
   purge_protection_enabled        = var.enable_purge_protection
-  tags                            = merge({ "ResourceName" = lower(var.key_vault_name) }, var.tags, )
+  tags     =  var.tags
 
   dynamic "network_acls" {
     for_each = var.network_acls != null ? [true] : []
@@ -249,7 +249,7 @@ resource "azurerm_private_endpoint" "pep1" {
   location            = local.location
   resource_group_name = local.resource_group_name
   subnet_id           = var.existing_subnet_id == null ? azurerm_subnet.snet-ep.0.id : var.existing_subnet_id
-  tags                = merge({ "Name" = format("%s-private-endpoint", var.key_vault_name) }, var.tags, )
+  tags     =  var.tags
 
   private_service_connection {
     name                           = "keyvault-privatelink"
@@ -276,7 +276,7 @@ resource "azurerm_private_dns_zone" "dnszone1" {
   count               = var.existing_private_dns_zone == null && var.enable_private_endpoint ? 1 : 0
   name                = "privatelink.vaultcore.azure.net"
   resource_group_name = local.resource_group_name
-  tags                = merge({ "Name" = format("%s", "KeyVault-Private-DNS-Zone") }, var.tags, )
+  tags     =  var.tags
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "vent-link1" {
@@ -286,7 +286,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "vent-link1" {
   private_dns_zone_name = var.existing_private_dns_zone == null ? azurerm_private_dns_zone.dnszone1.0.name : var.existing_private_dns_zone
   virtual_network_id    = var.existing_vnet_id == null ? data.azurerm_virtual_network.vnet01.0.id : var.existing_vnet_id
   registration_enabled  = true
-  tags                  = merge({ "Name" = format("%s", "vnet-private-zone-link") }, var.tags, )
+  tags     =  var.tags
 
   lifecycle {
     ignore_changes = [
