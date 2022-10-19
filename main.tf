@@ -166,7 +166,7 @@ resource "azurerm_key_vault" "main" {
     }
   }
 
-  dynamic "access_policy" {
+  /* dynamic "access_policy" {
     for_each = local.service_principal_object_id != "" ? [local.self_permissions] : []
     content {
       tenant_id               = data.azurerm_client_config.current.tenant_id
@@ -176,7 +176,7 @@ resource "azurerm_key_vault" "main" {
       secret_permissions      = access_policy.value.secret_permissions
       storage_permissions     = access_policy.value.storage_permissions
     }
-  }
+  } */
 
   dynamic "contact" {
     for_each = var.certificate_contacts
