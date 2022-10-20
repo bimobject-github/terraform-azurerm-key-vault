@@ -187,11 +187,6 @@ resource "azurerm_key_vault" "main" {
     }
   }
 
-  lifecycle {
-    ignore_changes = [
-      tags,
-    ]
-  }
 }
 
 #-----------------------------------------------------------------------------------
@@ -219,7 +214,6 @@ resource "azurerm_key_vault_secret" "keys" {
 
   lifecycle {
     ignore_changes = [
-      tags,
       value,
     ]
   }
@@ -258,11 +252,7 @@ resource "azurerm_private_endpoint" "pep1" {
     subresource_names              = ["vault"]
   }
 
-  lifecycle {
-    ignore_changes = [
-      tags,
-    ]
-  }
+ 
 }
 
 data "azurerm_private_endpoint_connection" "private-ip1" {
@@ -288,11 +278,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "vent-link1" {
   registration_enabled  = true
   tags     =  var.tags
 
-  lifecycle {
-    ignore_changes = [
-      tags,
-    ]
-  }
+ 
 }
 
 resource "azurerm_private_dns_a_record" "arecord1" {

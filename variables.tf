@@ -141,3 +141,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "service_principal_depends_on" {
+  type = any
+  default = []
+}
