@@ -83,16 +83,16 @@ locals {
     }
   ]
 
-  service_principal_object_id = data.azurerm_client_config.current.object_id
+  /* service_principal_object_id = data.azurerm_client_config.current.object_id
 
   self_permissions = {
     object_id               = local.service_principal_object_id
-    tenant_id               = data.azurerm_client_config.current.tenant_id
+    tenant_id               = var.azure_ad_tenant_id
     key_permissions         = ["Create", "Delete", "Get", "Backup", "Decrypt", "Encrypt", "Import", "List", "Purge", "Recover", "Restore", "Sign", "Update", "Verify"]
     secret_permissions      = ["Backup", "Delete", "Get", "List", "Purge", "Recover", "Restore", "Set"]
     certificate_permissions = ["Backup", "Create", "Delete", "DeleteIssuers", "Get", "GetIssuers", "Import", "List", "ListIssuers", "ManageContacts", "ManageIssuers", "Purge", "Recover", "Restore", "SetIssuers", "Update"]
     storage_permissions     = ["Backup", "Delete", "DeleteSAS", "Get", "GetSAS", "List", "ListSAS", "Purge", "Recover", "RegenerateKey", "Restore", "Set", "SetSAS", "Update"]
-  }
+  } */
 }
 
 data "azuread_group" "adgrp" {
@@ -125,7 +125,7 @@ resource "azurerm_resource_group" "rg" {
   tags     =  var.tags
 }
 
-data "azurerm_client_config" "current" {}
+#data "azurerm_client_config" "current" {}
 
 #-------------------------------------------------
 # Keyvault Creation - Default is "true"
@@ -134,7 +134,7 @@ resource "azurerm_key_vault" "main" {
   name                            = lower("${var.key_vault_name}")
   location                        = local.location
   resource_group_name             = local.resource_group_name
-  tenant_id                       = data.azurerm_client_config.current.tenant_id
+  tenant_id                       = var.azure_ad_tenant_id
   sku_name                        = var.key_vault_sku_pricing_tier
   enabled_for_deployment          = var.enabled_for_deployment
   enabled_for_disk_encryption     = var.enabled_for_disk_encryption
@@ -157,7 +157,7 @@ resource "azurerm_key_vault" "main" {
   dynamic "access_policy" {
     for_each = local.combined_access_policies
     content {
-      tenant_id               = data.azurerm_client_config.current.tenant_id
+      tenant_id               = var.azure_ad_tenant_id
       object_id               = access_policy.value.object_id
       certificate_permissions = access_policy.value.certificate_permissions
       key_permissions         = access_policy.value.key_permissions
@@ -169,7 +169,7 @@ resource "azurerm_key_vault" "main" {
   /* dynamic "access_policy" {
     for_each = local.service_principal_object_id != "" ? [local.self_permissions] : []
     content {
-      tenant_id               = data.azurerm_client_config.current.tenant_id
+      tenant_id               = var.azure_ad_tenant_id
       object_id               = access_policy.value.object_id
       certificate_permissions = access_policy.value.certificate_permissions
       key_permissions         = access_policy.value.key_permissions

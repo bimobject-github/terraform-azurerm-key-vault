@@ -141,3 +141,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "azure_ad_tenant_id"{ 
+  description = "Azure AD tennant id"
+  type = string
+}
