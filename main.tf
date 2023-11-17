@@ -108,6 +108,7 @@ data "azuread_user" "adusr" {
 data "azuread_service_principal" "adspn" {
   count        = length(local.azure_ad_service_principal_names)
   display_name = local.azure_ad_service_principal_names[count.index]
+  depends_on = [ var.service_principal_depends_on ]
 }
 
 #----------------------------------------------------------
