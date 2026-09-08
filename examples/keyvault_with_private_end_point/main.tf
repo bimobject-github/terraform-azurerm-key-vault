@@ -1,5 +1,21 @@
+terraform {
+  required_version = ">= 1.13"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 5.0"
+    }
+  }
+}
+
 # Azurerm Provider configuration
 provider "azurerm" {
+  # azurerm v5 no longer registers any Resource Providers by default. Uncomment the
+  # line below if Microsoft.KeyVault / Microsoft.Network are not yet registered on
+  # the target subscription, or register them out of band.
+  # resource_providers_to_register = ["Microsoft.KeyVault", "Microsoft.Network"]
+
   features {}
 }
 
@@ -26,30 +42,30 @@ module "key-vault" {
   access_policies = [
     {
       azure_ad_user_principal_names = ["user1@example.com", "user2@example.com"]
-      key_permissions               = ["get", "list"]
-      secret_permissions            = ["get", "list"]
-      certificate_permissions       = ["get", "import", "list"]
-      storage_permissions           = ["backup", "get", "list", "recover"]
+      key_permissions               = ["Get", "List"]
+      secret_permissions            = ["Get", "List"]
+      certificate_permissions       = ["Get", "Import", "List"]
+      storage_permissions           = ["Backup", "Get", "List", "Recover"]
     },
 
     # Access policies for AD Groups
     # to enable this feature, provide a list of Azure AD groups and set permissions as required.
     {
       azure_ad_group_names    = ["ADGroupName1", "ADGroupName2"]
-      key_permissions         = ["get", "list"]
-      secret_permissions      = ["get", "list"]
-      certificate_permissions = ["get", "import", "list"]
-      storage_permissions     = ["backup", "get", "list", "recover"]
+      key_permissions         = ["Get", "List"]
+      secret_permissions      = ["Get", "List"]
+      certificate_permissions = ["Get", "Import", "List"]
+      storage_permissions     = ["Backup", "Get", "List", "Recover"]
     },
 
     # Access policies for Azure AD Service Principlas
     # To enable this feature, provide a list of Azure AD SPN and set permissions as required.
     {
       azure_ad_service_principal_names = ["azure-ad-dev-sp1", "azure-ad-dev-sp2"]
-      key_permissions                  = ["get", "list"]
-      secret_permissions               = ["get", "list"]
-      certificate_permissions          = ["get", "import", "list"]
-      storage_permissions              = ["backup", "get", "list", "recover"]
+      key_permissions                  = ["Get", "List"]
+      secret_permissions               = ["Get", "List"]
+      certificate_permissions          = ["Get", "Import", "List"]
+      storage_permissions              = ["Backup", "Get", "List", "Recover"]
     }
   ]
 

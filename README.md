@@ -8,7 +8,7 @@ This Terraform Module creates a Key Vault also adds required access policies for
 
 * [Acess Polices for AD users, groups and SPN](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_access_policy)
 * [Secrets](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_secret)
-* [Certifiate Contacts](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault#contact)
+* [Certificate Contacts](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_certificate_contacts)
 * [Private Endpoints](https://www.terraform.io/docs/providers/azurerm/r/private_endpoint.html)
 * [Private DNS zone for `privatelink` A records](https://www.terraform.io/docs/providers/azurerm/r/private_dns_zone.html)
 * [Azure Log Dignostics](https://www.terraform.io/docs/providers/azurerm/r/network_security_group.html)
@@ -16,8 +16,24 @@ This Terraform Module creates a Key Vault also adds required access policies for
 ## Module Usage
 
 ```terraform
+terraform {
+  required_version = ">= 1.13"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 5.0"
+    }
+  }
+}
+
 # Azurerm Provider configuration
 provider "azurerm" {
+  # azurerm v5 no longer registers any Resource Providers by default. Uncomment the
+  # line below if Microsoft.KeyVault / Microsoft.Network are not yet registered on
+  # the target subscription, or register them out of band.
+  # resource_providers_to_register = ["Microsoft.KeyVault", "Microsoft.Network"]
+
   features {}
 }
 
@@ -44,30 +60,30 @@ module "key-vault" {
   access_policies = [
     {
       azure_ad_user_principal_names = ["user1@example.com", "user2@example.com"]
-      key_permissions               = ["get", "list"]
-      secret_permissions            = ["get", "list"]
-      certificate_permissions       = ["get", "import", "list"]
-      storage_permissions           = ["backup", "get", "list", "recover"]
+      key_permissions               = ["Get", "List"]
+      secret_permissions            = ["Get", "List"]
+      certificate_permissions       = ["Get", "Import", "List"]
+      storage_permissions           = ["Backup", "Get", "List", "Recover"]
     },
 
     # Access policies for AD Groups
     # to enable this feature, provide a list of Azure AD groups and set permissions as required.
     {
       azure_ad_group_names    = ["ADGroupName1", "ADGroupName2"]
-      key_permissions         = ["get", "list"]
-      secret_permissions      = ["get", "list"]
-      certificate_permissions = ["get", "import", "list"]
-      storage_permissions     = ["backup", "get", "list", "recover"]
+      key_permissions         = ["Get", "List"]
+      secret_permissions      = ["Get", "List"]
+      certificate_permissions = ["Get", "Import", "List"]
+      storage_permissions     = ["Backup", "Get", "List", "Recover"]
     },
 
     # Access policies for Azure AD Service Principlas
     # To enable this feature, provide a list of Azure AD SPN and set permissions as required.
     {
       azure_ad_service_principal_names = ["azure-ad-dev-sp1", "azure-ad-dev-sp2"]
-      key_permissions                  = ["get", "list"]
-      secret_permissions               = ["get", "list"]
-      certificate_permissions          = ["get", "import", "list"]
-      storage_permissions              = ["backup", "get", "list", "recover"]
+      key_permissions                  = ["Get", "List"]
+      secret_permissions               = ["Get", "List"]
+      certificate_permissions          = ["Get", "Import", "List"]
+      storage_permissions              = ["Backup", "Get", "List", "Recover"]
     }
   ]
 
@@ -163,7 +179,9 @@ module "key-vault" {
 
   # The contacts information is shared by all the certificates in the key vault. 
   # A notification is sent to all the specified contacts for any certificate event in the key vault. 
-  # This field can only be set once user has `managecontacts` certificate permission.
+  # This field can only be set once user has `ManageContacts` certificate permission.
+  # Managed through the `azurerm_key_vault_certificate_contacts` resource, since the
+  # inline `contact` block was removed from `azurerm_key_vault` in azurerm v5.
   certificate_contacts = [
     {
       email = "user1@example.com"
@@ -244,20 +262,47 @@ Tag names are case-insensitive for operations. A tag with a tag name, regardless
 
 An effective naming convention assembles resource names by using important resource information as parts of a resource's name. For example, using these [recommended naming conventions](https://docs.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/naming-and-tagging#example-names), a public IP resource for a production SharePoint workload is named like this: `pip-sharepoint-prod-westus-001`.
 
+## Upgrading to azurerm v5
+
+This version of the module targets Terraform `>= 1.13` and the `azurerm` `~> 5.0`,
+`azuread` `~> 3.0` and `random` `~> 3.7` providers. Note the following when upgrading:
+
+* **Access policy permissions are case-sensitive.** `key_permissions`,
+  `secret_permissions`, `certificate_permissions` and `storage_permissions` must use
+  the provider's Title-Case values (`Get`, `List`, `ManageContacts`, `DeleteSAS`, ...).
+  Lowercase values such as `get` are rejected.
+* **Certificate contacts moved to their own resource.** The inline `contact` block was
+  removed from `azurerm_key_vault`, so `certificate_contacts` is now applied through an
+  `azurerm_key_vault_certificate_contacts` resource. The module input is unchanged, but
+  Terraform will show the contacts moving out of `azurerm_key_vault.main` and into
+  `azurerm_key_vault_certificate_contacts.main` on the first plan.
+* **Private DNS records are addressed by zone ID.** `azurerm_private_dns_a_record` and
+  `azurerm_private_dns_zone_virtual_network_link` no longer take `zone_name` /
+  `private_dns_zone_name` plus `resource_group_name`. When you pass
+  `existing_private_dns_zone`, the module looks the zone up to obtain its resource ID;
+  set `existing_private_dns_zone_resource_group_name` if that zone lives outside the
+  Key Vault's resource group.
+* **No Resource Providers are registered by default.** azurerm v5 changed
+  `resource_provider_registrations` to default to `none`. Ensure `Microsoft.KeyVault`
+  and `Microsoft.Network` are registered on the subscription, or set
+  `resource_providers_to_register` in your `provider` block.
+* **Diagnostic settings use `enabled_metric`.** The deprecated `metric` block was
+  removed; the module now emits `enabled_metric` for the `AllMetrics` category.
+
 ## Requirements
 
 Name | Version
 -----|--------
-terraform | >= 0.13
-azurerm | >= 2.59.0
+terraform | >= 1.13
+azurerm | ~> 5.0
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-azurerm | >= 2.59.0
-random | >= 3.1.0
-azuread | >= 2.7.0
+azurerm | ~> 5.0
+random | ~> 3.7
+azuread | ~> 3.0
 
 ## Inputs
 
@@ -278,10 +323,10 @@ Name | Description | Type | Default
 `azure_ad_user_principal_names`|List of user principal names of Azure AD users|list| `[]`
 `azure_ad_group_names`|List of names of Azure AD groups|list|`[]`
 `azure_ad_service_principal_names`|List of names of Azure AD service principals|list|`[]`
-`key_permissions`|List of key permissions, must be one or more from the following: `backup`, `create`, `decrypt`, `delete`, `encrypt`, `get`, `import`, `list`, `purge`, `recover`, `restore`, `sign`, `unwrapKey`, `update`, `verify` and `wrapKey`.|list|`[]`
-`secret_permissions`|List of secret permissions, must be one or more from the following: `backup`, `delete`, `get`, `list`, `purge`, `recover`, `restore` and `set`. |list|`[]`
-`certificate_permissions`|List of certificate permissions, must be one or more from the following: `backup`, `create`, `delete`, `deleteissuers`, `get`, `getissuers`, `import`, `list`, `listissuers`, `managecontacts`, `manageissuers`, `purge`, `recover`, `restore`, `setissuers` and `update`.|list|`[]`
-`storage_permissions`|List of storage permissions, must be one or more from the following: `backup`, `delete`, `deletesas`, `get`, `getsas`, `list`, `listsas`, `purge`, `recover`, `regeneratekey`, `restore`, `set`, `setsas` and `update`. |list|`[]`
+`key_permissions`|List of key permissions, must be one or more from the following: `Backup`, `Create`, `Decrypt`, `Delete`, `Encrypt`, `Get`, `Import`, `List`, `Purge`, `Recover`, `Restore`, `Sign`, `UnwrapKey`, `Update`, `Verify`, `WrapKey`, `Release`, `Rotate`, `GetRotationPolicy` and `SetRotationPolicy`.|list|`[]`
+`secret_permissions`|List of secret permissions, must be one or more from the following: `Backup`, `Delete`, `Get`, `List`, `Purge`, `Recover`, `Restore` and `Set`. |list|`[]`
+`certificate_permissions`|List of certificate permissions, must be one or more from the following: `Backup`, `Create`, `Delete`, `DeleteIssuers`, `Get`, `GetIssuers`, `Import`, `List`, `ListIssuers`, `ManageContacts`, `ManageIssuers`, `Purge`, `Recover`, `Restore`, `SetIssuers` and `Update`.|list|`[]`
+`storage_permissions`|List of storage permissions, must be one or more from the following: `Backup`, `Delete`, `DeleteSAS`, `Get`, `GetSAS`, `List`, `ListSAS`, `Purge`, `Recover`, `RegenerateKey`, `Restore`, `Set`, `SetSAS` and `Update`. |list|`[]`
 `network_acls`|Configure Azure Key Vault firewalls and virtual networks|list| `{}`
 `secrets`|A map of secrets for the Key Vault|map| `{}`
 `random_password_length`|The desired length of random password created by this module|number|`32`
@@ -291,7 +336,8 @@ Name | Description | Type | Default
 `private_subnet_address_prefix`|Address prefix of the subnet for private endpoint creation. conflicts with `existing_subnet_id` and shouldn't use both|list(string)|`null`
 `existing_vnet_id`|The resoruce id of existing Virtual network for private endpoint creation. Conflicts with `virtual_network_name`and shouldn't use both|string|`null`
 `existing_subnet_id`|The resource id of existing subnet for private endpoint creation. Conflicts with `private_subnet_address_prefix` and shouldn't use both|string|`null`
-`existing_private_dns_zone`|The name of exisging private DNS zone|string|`null`
+`existing_private_dns_zone`|The name of existing private DNS zone|string|`null`
+`existing_private_dns_zone_resource_group_name`|Name of the resource group holding `existing_private_dns_zone`. When `null`, the first zone in the subscription matching the name is used.|string|`null`
 `log_analytics_workspace_id`|The id of log analytic workspace to send logs and metrics.|string|`"null"`
 `storage_account_id`|The id of storage account to send logs and metrics|string|`"null"`
 `Tags`|A map of tags to add to all resources|map|`{}`
