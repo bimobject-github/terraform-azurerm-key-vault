@@ -1,7 +1,15 @@
 
 locals {
-  resource_group_name = element(coalescelist(data.azurerm_resource_group.rgrp.*.name, azurerm_resource_group.rg.*.name, [""]), 0)
-  location            = element(coalescelist(data.azurerm_resource_group.rgrp.*.location, azurerm_resource_group.rg.*.location, [""]), 0)
+  resource_group_name = element(coalescelist(data.azurerm_resource_group.rgrp[*].name, azurerm_resource_group.rg[*].name, [""]), 0)
+  location            = element(coalescelist(data.azurerm_resource_group.rgrp[*].location, azurerm_resource_group.rg[*].location, [""]), 0)
+
+  # Resource ID of the private DNS zone used for the Key Vault private endpoint,
+  # either the zone this module creates or an existing one looked up by name.
+  private_dns_zone_id = var.enable_private_endpoint ? (
+    var.existing_private_dns_zone == null
+    ? azurerm_private_dns_zone.dnszone1[0].id
+    : data.azurerm_private_dns_zone.dnszone1[0].id
+  ) : null
 
   access_policies = [
     for p in var.access_policies : merge({
@@ -20,9 +28,9 @@ locals {
   azure_ad_user_principal_names    = distinct(flatten(local.access_policies[*].azure_ad_user_principal_names))
   azure_ad_service_principal_names = distinct(flatten(local.access_policies[*].azure_ad_service_principal_names))
 
-  group_object_ids = { for g in data.azuread_group.adgrp : lower(g.display_name) => g.id }
-  user_object_ids  = { for u in data.azuread_user.adusr : lower(u.user_principal_name) => u.id }
-  spn_object_ids   = { for s in data.azuread_service_principal.adspn : lower(s.display_name) => s.id }
+  group_object_ids = { for g in data.azuread_group.adgrp : lower(g.display_name) => g.object_id }
+  user_object_ids  = { for u in data.azuread_user.adusr : lower(u.user_principal_name) => u.object_id }
+  spn_object_ids   = { for s in data.azuread_service_principal.adspn : lower(s.display_name) => s.object_id }
 
   flattened_access_policies = concat(
     flatten([
@@ -108,7 +116,7 @@ data "azuread_user" "adusr" {
 data "azuread_service_principal" "adspn" {
   count        = length(local.azure_ad_service_principal_names)
   display_name = local.azure_ad_service_principal_names[count.index]
-  depends_on = [ var.service_principal_depends_on ]
+  depends_on   = [var.service_principal_depends_on]
 }
 
 #----------------------------------------------------------
@@ -123,7 +131,7 @@ resource "azurerm_resource_group" "rg" {
   count    = var.create_resource_group ? 1 : 0
   name     = lower(var.resource_group_name)
   location = var.location
-  tags     =  var.tags
+  tags     = var.tags
 }
 
 data "azurerm_client_config" "current" {}
@@ -141,9 +149,9 @@ resource "azurerm_key_vault" "main" {
   enabled_for_disk_encryption     = var.enabled_for_disk_encryption
   enabled_for_template_deployment = var.enabled_for_template_deployment
   soft_delete_retention_days      = var.soft_delete_retention_days
-  enable_rbac_authorization       = var.enable_rbac_authorization
+  rbac_authorization_enabled      = var.enable_rbac_authorization
   purge_protection_enabled        = var.enable_purge_protection
-  tags     =  var.tags
+  tags                            = var.tags
 
   dynamic "network_acls" {
     for_each = var.network_acls != null ? [true] : []
@@ -179,6 +187,15 @@ resource "azurerm_key_vault" "main" {
     }
   } */
 
+}
+
+#-------------------------------------------------------------------------------------
+# Keyvault certificate contacts - the inline `contact` block was removed in azurerm v5
+#-------------------------------------------------------------------------------------
+resource "azurerm_key_vault_certificate_contacts" "main" {
+  count        = length(var.certificate_contacts) > 0 ? 1 : 0
+  key_vault_id = azurerm_key_vault.main.id
+
   dynamic "contact" {
     for_each = var.certificate_contacts
     content {
@@ -187,7 +204,6 @@ resource "azurerm_key_vault" "main" {
       phone = contact.value.phone
     }
   }
-
 }
 
 #-----------------------------------------------------------------------------------
@@ -232,8 +248,8 @@ data "azurerm_virtual_network" "vnet01" {
 resource "azurerm_subnet" "snet-ep" {
   count                             = var.enable_private_endpoint && var.existing_subnet_id == null ? 1 : 0
   name                              = "snet-endpoint-${local.location}"
-  resource_group_name               = var.existing_vnet_id == null ? data.azurerm_virtual_network.vnet01.0.resource_group_name : element(split("/", var.existing_vnet_id), 4)
-  virtual_network_name              = var.existing_vnet_id == null ? data.azurerm_virtual_network.vnet01.0.name : element(split("/", var.existing_vnet_id), 8)
+  resource_group_name               = var.existing_vnet_id == null ? data.azurerm_virtual_network.vnet01[0].resource_group_name : element(split("/", var.existing_vnet_id), 4)
+  virtual_network_name              = var.existing_vnet_id == null ? data.azurerm_virtual_network.vnet01[0].name : element(split("/", var.existing_vnet_id), 8)
   address_prefixes                  = var.private_subnet_address_prefix
   private_endpoint_network_policies = "Enabled"
 }
@@ -243,8 +259,8 @@ resource "azurerm_private_endpoint" "pep1" {
   name                = format("%s-private-endpoint", var.key_vault_name)
   location            = local.location
   resource_group_name = local.resource_group_name
-  subnet_id           = var.existing_subnet_id == null ? azurerm_subnet.snet-ep.0.id : var.existing_subnet_id
-  tags     =  var.tags
+  subnet_id           = var.existing_subnet_id == null ? azurerm_subnet.snet-ep[0].id : var.existing_subnet_id
+  tags                = var.tags
 
   private_service_connection {
     name                           = "keyvault-privatelink"
@@ -253,42 +269,39 @@ resource "azurerm_private_endpoint" "pep1" {
     subresource_names              = ["vault"]
   }
 
- 
-}
 
-data "azurerm_private_endpoint_connection" "private-ip1" {
-  count               = var.enable_private_endpoint ? 1 : 0
-  name                = azurerm_private_endpoint.pep1.0.name
-  resource_group_name = local.resource_group_name
-  depends_on          = [azurerm_key_vault.main]
 }
 
 resource "azurerm_private_dns_zone" "dnszone1" {
   count               = var.existing_private_dns_zone == null && var.enable_private_endpoint ? 1 : 0
   name                = "privatelink.vaultcore.azure.net"
   resource_group_name = local.resource_group_name
-  tags     =  var.tags
+  tags                = var.tags
+}
+
+# The private DNS record resources take a `private_dns_zone_id` in azurerm v5, so an
+# existing zone referenced by name has to be looked up to obtain its resource ID.
+data "azurerm_private_dns_zone" "dnszone1" {
+  count               = var.existing_private_dns_zone != null && var.enable_private_endpoint ? 1 : 0
+  name                = var.existing_private_dns_zone
+  resource_group_name = var.existing_private_dns_zone_resource_group_name
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "vent-link1" {
-  count                 = var.enable_private_endpoint ? 1 : 0
-  name                  = "vnet-private-zone-link"
-  resource_group_name   = local.resource_group_name
-  private_dns_zone_name = var.existing_private_dns_zone == null ? azurerm_private_dns_zone.dnszone1.0.name : var.existing_private_dns_zone
-  virtual_network_id    = var.existing_vnet_id == null ? data.azurerm_virtual_network.vnet01.0.id : var.existing_vnet_id
-  registration_enabled  = true
-  tags     =  var.tags
-
- 
+  count                = var.enable_private_endpoint ? 1 : 0
+  name                 = "vnet-private-zone-link"
+  private_dns_zone_id  = local.private_dns_zone_id
+  virtual_network_id   = var.existing_vnet_id == null ? data.azurerm_virtual_network.vnet01[0].id : var.existing_vnet_id
+  registration_enabled = true
+  tags                 = var.tags
 }
 
 resource "azurerm_private_dns_a_record" "arecord1" {
   count               = var.enable_private_endpoint ? 1 : 0
   name                = azurerm_key_vault.main.name
-  zone_name           = var.existing_private_dns_zone == null ? azurerm_private_dns_zone.dnszone1.0.name : var.existing_private_dns_zone
-  resource_group_name = local.resource_group_name
+  private_dns_zone_id = local.private_dns_zone_id
   ttl                 = 300
-  records             = [data.azurerm_private_endpoint_connection.private-ip1.0.private_service_connection.0.private_ip_address]
+  records             = [azurerm_private_endpoint.pep1[0].private_service_connection[0].private_ip_address]
 }
 
 #---------------------------------------------------
@@ -304,12 +317,11 @@ resource "azurerm_monitor_diagnostic_setting" "diag" {
   dynamic "enabled_log" {
     for_each = var.kv_diag_logs
     content {
-      category = log.value
+      category = enabled_log.value
     }
   }
 
-  metric {
+  enabled_metric {
     category = "AllMetrics"
-    enabled  = true
   }
 }

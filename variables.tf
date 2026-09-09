@@ -80,13 +80,12 @@ variable "random_password_length" {
   default     = 32
 }
 
-#won't use it until module_variable_optional_attrs is in experiment mode
 variable "certificate_contacts" {
-  description = "Contact information to send notifications triggered by certificate lifetime events"
+  description = "Contact information to send notifications triggered by certificate lifetime events. Managed via the `azurerm_key_vault_certificate_contacts` resource."
   type = list(object({
     email = string
-    name  = string
-    phone = string
+    name  = optional(string)
+    phone = optional(string)
   }))
   default = []
 }
@@ -113,6 +112,13 @@ variable "existing_subnet_id" {
 
 variable "existing_private_dns_zone" {
   description = "Name of the existing private DNS zone"
+  type        = string
+  default     = null
+}
+
+variable "existing_private_dns_zone_resource_group_name" {
+  description = "Name of the resource group holding `existing_private_dns_zone`. When null, the first zone in the subscription matching the name is used."
+  type        = string
   default     = null
 }
 
@@ -143,6 +149,6 @@ variable "tags" {
 }
 
 variable "service_principal_depends_on" {
-  type = any
+  type    = any
   default = []
 }
