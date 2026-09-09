@@ -17,7 +17,7 @@ This Terraform Module creates a Key Vault also adds required access policies for
 
 ```terraform
 terraform {
-  required_version = ">= 1.13"
+  required_version = ">= 1.13, < 2.0.0"
 
   required_providers {
     azurerm = {
@@ -264,7 +264,7 @@ An effective naming convention assembles resource names by using important resou
 
 ## Upgrading to azurerm v5
 
-This version of the module targets Terraform `>= 1.13` and the `azurerm` `~> 5.0`,
+This version of the module targets Terraform `>= 1.13, < 2.0.0` and the `azurerm` `~> 5.0`,
 `azuread` `~> 3.0` and `random` `~> 3.7` providers. Note the following when upgrading:
 
 * **Access policy permissions are case-sensitive.** `key_permissions`,
@@ -293,7 +293,7 @@ This version of the module targets Terraform `>= 1.13` and the `azurerm` `~> 5.0
 
 Name | Version
 -----|--------
-terraform | >= 1.13
+terraform | >= 1.13, < 2.0.0
 azurerm | ~> 5.0
 
 ## Providers

@@ -6,7 +6,7 @@ Terraform Module to create a Key Vault also adds required access policies for az
 
 ```hcl
 terraform {
-  required_version = ">= 1.13"
+  required_version = ">= 1.13, < 2.0.0"
 
   required_providers {
     azurerm = {
